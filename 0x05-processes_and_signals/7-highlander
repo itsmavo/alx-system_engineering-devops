@@ -1,0 +1,10 @@
+#!/usr/bin/env bash
+# Displays some text indefinitely with sleep
+# displays in between each iteration
+
+while true
+do
+	echo "To infinity and beyond"
+	sleep 2
+	trap 'echo "Iam invincible!!!"' SIGTERM
+done

@@ -1,0 +1,4 @@
+#!/usr/bin/env bash
+#bash script the stops process 4-infinity
+
+pkill -f 4-to_infinity_abd_beyond
