@@ -1,0 +1,3 @@
+#!/usr/bin/env bash
+# listens on port on loaclhost
+nc -l localhost 98
