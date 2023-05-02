@@ -2,22 +2,53 @@
 # Install and sets up haproxy
 
 apt-get install -y software-properties-common
-add-apt-repository -y ppa:vbernat/haproxy-1.8
+add-apt-repository -y ppa:vbernat/haproxy-2.4
 apt-get -y update
-apt-get install -y haproxy=1.8.\*
+apt-get install -y haproxy
 
-echo "ENABLED=1" > /etc/default/haproxy
+# Load Balancer config
+DOMAIN='its-mavo.tech'
+INIT='/etc/default/haproxy'
+CONFIG='etc/haproxy/haproxy.cfg'
+LB_CONFIG=\
+"
+#--DOMAIN-params
+backend $DOMAIN-backend
+	balance roundrobin
+	server 64786-web-01 52.90.0.73:80 check
+	server 64786-web-02 34.234.201.81:80 check
+frontend $DOMAIN-frontend
+	bind *:80
+	mode http
+	default_backend $DOMAIN-backend
+#--$DOMAIN-close
+"
+[ -f "$INIT" ] || touch "$INIT"
+[ -f "$CONFIG" ] || touch "$CONFIG"
 
-# Listen to web1 and web2 servers
-echo"
-  listen load_balancer
-  binf *:80
-  mode http
-  balance roundrobin
-  option httpclose
-  option forwardfor
-  server 64786-web-01 3.84.237.80 check
-  server 64786-web-02 100.25.203.47 check
-" >> /etc/haproxy/haproxy.cfg
+CFG_WDS=$(grep -Eco "$DOMAIN-backend" < $CONFIG)
 
-service haproxy start
+if [ "$(grep -Eco '^ENABLED=[01]$' < $INIT)" -gt 0 ]; then
+	sed -i 's/^ENABLED=0$/ENABLED=1/' "$INIT"
+else
+	echo 'ENABLED=1' >> INIT
+fi
+
+if [ "$CFG_WDS" -eq 0 ]; then
+	echo -e "$LB_CONFIG" >> $CONFIG
+else
+	start_tkn="#--$DOMAIN-params"
+	end_tkn="#--$DOMAIN-close"
+	a=$(grep -onE "$start_tkn" < "$CONFIG" | cut -d : -f1)
+	b=$(grep -onE "$end_tkn" < "$CONFIG" | cut -d : f1)
+	a=$((a - 1))
+	b=$((b + 1))
+	sed -i "$a,$b"d"$CONFIG"
+	echo -en "LB_CONFIG" >> $CONFIG
+fi
+
+if [ "$(pgrep -c haproxy)" -le 0 ]; then
+	sudo service haproxy start
+else
+	sudo service haproxy restart
+fi
