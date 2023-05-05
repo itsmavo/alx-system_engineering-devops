@@ -32,9 +32,12 @@ defaults
 	errorfile 502 /etc/haproxy/errors/502.http
 	errorfile 503 /etc/haproxy/errors/503.http
 	errorfile 504 /etc/haproxy/errors/504.http
+	option forwardfor
+	option http-server-close
 #--DOMAIN-params
 backend its-mavo.tech-backend
 	balance roundrobin
+	redirect scheme https if !{ ssl_fc }
 	server 64786-web-01 52.90.0.73:80 check
 	server 64786-web-02 34.234.201.81:80 check
 frontend its-mavo.tech-frontend
